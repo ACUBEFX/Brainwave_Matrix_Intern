@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Expense Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f4f8;
+      color: #333;
+    }
+    header, footer {
+      background-color: #2c3e50;
+      color: #fff;
+      text-align: center;
+      padding: 1rem 0;
+    }
+    .container {
+      max-width: 500px;
+      margin: 32px auto;
+      background: #fff;
+      padding: 28px 24px;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(44, 62, 80, 0.07);
+    }
+    h1, h2, h3 {
+      margin-top: 0;
+      color: #2c3e50;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .input-group input,
+    .input-group select,
+    .input-group button {
+      padding: 12px;
+      border: 1px solid #d0d6db;
+      border-radius: 8px;
+      font-size: 1rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .input-group input:focus,
+    .input-group select:focus {
+      border-color: #3498db;
+    }
+    .input-group button {
+      background-color: #3498db;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      transition: background 0.3s;
+    }
+    .input-group button:hover,
+    .input-group button:focus {
+      background-color: #2980b9;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 20px;
+    }
+    li {
+      background: #ecf0f1;
+      margin: 6px 0;
+      padding: 10px 12px;
+      border-left: 6px solid;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1rem;
+      word-break: break-all;
+    }
+    .income {
+      border-color: #2ecc71;
+      color: #229954;
+    }
+    .expense {
+      border-color: #e74c3c;
+      color: #c0392b;
+    }
+    .summary {
+      background: #f9f9f9;
+      padding: 18px 10px;
+      border-radius: 10px;
+      text-align: center;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 6px rgba(44,62,80,.04);
+    }
+    .summary p {
+      margin: 8px 0;
+      font-weight: bold;
+      font-size: 1.05rem;
+      letter-spacing: 0.1px;
+    }
+    footer p {
+      font-size: 0.97rem;
+      margin: 0;
+      letter-spacing: 0.2px;
+    }
+    @media (max-width: 600px) {
+      .container {
+        margin: 18px 6px;
+        padding: 16px 8px;
+      }
+      header, footer {
+        padding: 0.8rem 0.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>My Finance Dashboard</h1>
+  </header>
+  <main class="container">
+    <h2>Expense Tracker</h2>
+    <form class="input-group" id="transactionForm" autocomplete="off">
+      <input type="text" id="description" placeholder="Description" required maxlength="50" />
+      <input type="number" id="amount" placeholder="Amount" min="0.01" step="0.01" required />
+      <select id="type">
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+      </select>
+      <button type="submit">Add Transaction</button>
+    </form>
+
+    <h3>Transactions</h3>
+    <ul id="transactionList"></ul>
+
+    <h3>Summary</h3>
+    <section class="summary" aria-live="polite">
+      <p>Income: ₦<span id="totalIncome">0</span></p>
+      <p>Expense: ₦<span id="totalExpense">0</span></p>
+      <p>Balance: ₦<span id="balance">0</span></p>
+    </section>
+  </main>
+  <footer>
+    <p>&copy; 2025 CapCentral | Expense Tracker by SIWES Intern</p>
+  </footer>
+  <script>
+    // Use a single global for transactions
+    const transactions = [];
+
+    // Helper to format currency with commas, 2 decimals
+    function formatCurrency(amount) {
+      return amount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // Add a transaction to the array and update UI
+    function addTransaction(e) {
+      e.preventDefault();
+
+      const descInput = document.getElementById('description');
+      const amountInput = document.getElementById('amount');
+      const typeInput = document.getElementById('type');
+
+      const desc = descInput.value.trim();
+      const amount = parseFloat(amountInput.value);
+      const type = typeInput.value;
+
+      if (!desc || isNaN(amount) || amount <= 0) {
+        alert('Please enter a valid description and a positive amount.');
+        return;
+      }
+
+      transactions.push({ desc, amount, type });
+      updateUI();
+
+      // Reset form fields
+      descInput.value = '';
+      amountInput.value = '';
+      typeInput.value = 'income';
+      descInput.focus();
+    }
+
+    // Update the transaction list and summary
+    function updateUI() {
+      const list = document.getElementById('transactionList');
+      list.innerHTML = '';
+
+      let income = 0, expense = 0;
+
+      transactions.forEach(t => {
+        const li = document.createElement('li');
+        li.className = t.type;
+        li.innerHTML = `
+          <span>${t.desc}</span>
+          <span>₦${formatCurrency(t.amount)}</span>
+        `;
+        list.appendChild(li);
+        if (t.type === 'income') income += t.amount;
+        else expense += t.amount;
+      });
+
+      document.getElementById('totalIncome').textContent = formatCurrency(income);
+      document.getElementById('totalExpense').textContent = formatCurrency(expense);
+      document.getElementById('balance').textContent = formatCurrency(income - expense);
+    }
+
+    // Event listener for form submission for accessibility and usability
+    document.getElementById('transactionForm').addEventListener('submit', addTransaction);
+  </script>
+</body>
+</html>
